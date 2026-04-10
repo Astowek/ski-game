@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>Manager Skoków ONLINE</h1>
+
+<button onclick="start()">Start</button>
+<button onclick="train()">Trening</button>
+<button onclick="comp()">Zawody</button>
+
+<pre id="out"></pre>
+
+<script>
+let id = null;
+
+// 🔴 TU WKLEISZ LINK Z REPLIT
+const API = "https://TWOJ-SERWER.replit.app";
+
+async function start(){
+  let res = await fetch(API+"/register",{method:"POST"});
+  let data = await res.json();
+  id = data.id;
+  out("Zarejestrowano!");
+}
+
+async function train(){
+  let res = await fetch(API+"/train",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+  let data = await res.json();
+  out("Skill: "+data.skill.toFixed(1));
+}
+
+async function comp(){
+  let res = await fetch(API+"/competition",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({id})
+  });
+  let data = await res.json();
+
+  let txt="";
+  data.forEach((p,i)=>{
+    txt+=(i+1)+". "+p.name+" "+p.score.toFixed(2)+"m\n";
+  });
+
+  out(txt);
+}
+
+function out(t){
+  document.getElementById("out").innerText=t;
+}
+</script>
+
+</body>
+</html>
