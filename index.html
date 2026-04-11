@@ -2,56 +2,94 @@
 <html>
 <body>
 
-<h1>Manager Skoków ONLINE</h1>
+<h1>🏔️ Manager Skoków (GitHub Edition)</h1>
 
-<button onclick="start()">Start</button>
+<p>Nazwa: <input id="name" placeholder="Twoje imię"></p>
+
+<button onclick="saveName()">Zapisz nazwę</button>
 <button onclick="train()">Trening</button>
 <button onclick="comp()">Zawody</button>
 
 <pre id="out"></pre>
 
+<h3>🏆 Ranking lokalny</h3>
+<div id="ranking"></div>
+
 <script>
-let id = null;
+let player = JSON.parse(localStorage.getItem("player")) || {
+  name: "Gracz",
+  skill: 50,
+  form: 50,
+  points: 0
+};
 
-// 🔴 TU WKLEISZ LINK Z REPLIT
-const API = "https://TWOJ-SERWER.replit.app";
-
-async function start(){
-  let res = await fetch(API+"/register",{method:"POST"});
-  let data = await res.json();
-  id = data.id;
-  out("Zarejestrowano!");
+function save() {
+  localStorage.setItem("player", JSON.stringify(player));
 }
 
-async function train(){
-  let res = await fetch(API+"/train",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id})
-  });
-  let data = await res.json();
-  out("Skill: "+data.skill.toFixed(1));
+function saveName() {
+  player.name = document.getElementById("name").value;
+  save();
 }
 
-async function comp(){
-  let res = await fetch(API+"/competition",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({id})
+function train() {
+  player.skill += Math.random()*2;
+  player.form += Math.random()*5-2;
+  save();
+  out("Trening zakończony");
+}
+
+function jump(skill, form) {
+  return 90 + skill*0.4 + form*0.2 + (Math.random()*10-5);
+}
+
+function comp() {
+  let results = [];
+
+  // boty
+  for (let i=0;i<10;i++){
+    results.push({
+      name:"Bot "+(i+1),
+      score:jump(40+Math.random()*20,40+Math.random()*20)
+    });
+  }
+
+  // gracz
+  results.push({
+    name:player.name,
+    score:jump(player.skill, player.form)
   });
-  let data = await res.json();
+
+  results.sort((a,b)=>b.score-a.score);
+
+  // punkty
+  results.forEach((r,i)=>{
+    if (r.name === player.name){
+      player.points += (10 - i > 0 ? 10 - i : 1);
+    }
+  });
+
+  save();
 
   let txt="";
-  data.forEach((p,i)=>{
-    txt+=(i+1)+". "+p.name+" "+p.score.toFixed(2)+"m\n";
+  results.forEach((r,i)=>{
+    txt+=(i+1)+". "+r.name+" "+r.score.toFixed(2)+"m\n";
   });
 
   out(txt);
+  showRanking();
+}
+
+function showRanking() {
+  document.getElementById("ranking").innerText =
+    player.name + " - " + player.points + " pkt";
 }
 
 function out(t){
   document.getElementById("out").innerText=t;
 }
+
+showRanking();
 </script>
 
 </body>
