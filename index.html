@@ -25,7 +25,7 @@ let user = null;
 let player = null;
 
 // 🔑 LOGIN GITHUB
-async function login(){
+window.login = async function()
   await supabase.auth.signInWithOAuth({
     provider: 'github'
   });
