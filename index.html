@@ -2,74 +2,101 @@
 <html>
 <body>
 
-<h1>🏔️ Manager Skoków (GitHub Edition)</h1>
+<h1>🏔️ Manager Skoków ONLINE</h1>
 
-<p>Nazwa: <input id="name" placeholder="Twoje imię"></p>
+<button onclick="login()">🔑 Zaloguj GitHub</button>
 
-<button onclick="saveName()">Zapisz nazwę</button>
+<input id="name" placeholder="Twoja nazwa">
+<button onclick="saveName()">Zapisz</button>
+
 <button onclick="train()">Trening</button>
 <button onclick="comp()">Zawody</button>
+<button onclick="ranking()">Ranking</button>
 
 <pre id="out"></pre>
 
-<h3>🏆 Ranking lokalny</h3>
-<div id="ranking"></div>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script>
-let player = JSON.parse(localStorage.getItem("player")) || {
-  name: "Gracz",
-  skill: 50,
-  form: 50,
-  points: 0
+const SUPABASE_URL = "TU_URL";
+const SUPABASE_KEY = "TU_KEY";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let user = null;
+let player = null;
+
+// 🔑 LOGIN GITHUB
+async function login(){
+  await supabase.auth.signInWithOAuth({
+    provider: 'github'
+  });
+}
+
+// po powrocie z logowania
+async function loadUser(){
+  const { data } = await supabase.auth.getUser();
+  user = data.user;
+
+  if (!user) return;
+
+  let { data: existing } = await supabase
+    .from("players")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+
+  if (!existing){
+    player = {
+      id: user.id,
+      name: "Gracz",
+      skill: 50,
+      form: 50,
+      points: 0
+    };
+    await supabase.from("players").insert(player);
+  } else {
+    player = existing;
+  }
+}
+
+async function savePlayer(){
+  await supabase.from("players").upsert(player);
+}
+
+window.saveName = async function(){
+  player.name = document.getElementById("name").value;
+  await savePlayer();
 };
 
-function save() {
-  localStorage.setItem("player", JSON.stringify(player));
-}
-
-function saveName() {
-  player.name = document.getElementById("name").value;
-  save();
-}
-
-function train() {
+window.train = async function(){
   player.skill += Math.random()*2;
   player.form += Math.random()*5-2;
-  save();
-  out("Trening zakończony");
-}
+  await savePlayer();
+  out("Trening OK");
+};
 
-function jump(skill, form) {
+function jump(skill, form){
   return 90 + skill*0.4 + form*0.2 + (Math.random()*10-5);
 }
 
-function comp() {
-  let results = [];
+window.comp = async function(){
+  let { data } = await supabase.from("players").select("*");
 
-  // boty
-  for (let i=0;i<10;i++){
-    results.push({
-      name:"Bot "+(i+1),
-      score:jump(40+Math.random()*20,40+Math.random()*20)
-    });
-  }
-
-  // gracz
-  results.push({
-    name:player.name,
-    score:jump(player.skill, player.form)
-  });
+  let results = data.map(p=>({
+    id:p.id,
+    name:p.name,
+    score:jump(p.skill,p.form)
+  }));
 
   results.sort((a,b)=>b.score-a.score);
 
-  // punkty
   results.forEach((r,i)=>{
-    if (r.name === player.name){
+    if (r.id === player.id){
       player.points += (10 - i > 0 ? 10 - i : 1);
     }
   });
 
-  save();
+  await savePlayer();
 
   let txt="";
   results.forEach((r,i)=>{
@@ -77,19 +104,26 @@ function comp() {
   });
 
   out(txt);
-  showRanking();
-}
+};
 
-function showRanking() {
-  document.getElementById("ranking").innerText =
-    player.name + " - " + player.points + " pkt";
-}
+window.ranking = async function(){
+  let { data } = await supabase.from("players").select("*");
+
+  data.sort((a,b)=>b.points-a.points);
+
+  let txt="RANKING:\n";
+  data.forEach((p,i)=>{
+    txt+=(i+1)+". "+p.name+" ("+p.points+" pkt)\n";
+  });
+
+  out(txt);
+};
 
 function out(t){
   document.getElementById("out").innerText=t;
 }
 
-showRanking();
+loadUser();
 </script>
 
 </body>
